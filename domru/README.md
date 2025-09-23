@@ -8,7 +8,7 @@
 
 Для установки необоходимо в зайти в Home Assistant -> Supervisor -> Add-on Store -> Menu -> Repositories
 
-В появившемся окне необходимо добавить: `https://github.com/alexmorbo/domru` и нажать `Add`
+В появившемся окне необходимо добавить: `https://github.com/fess17/domru` и нажать `Add`
 
 После установки необходимо зайти в Web UI (Open WEB UI) и авторизоваться с помощью телефона и смс.
 
