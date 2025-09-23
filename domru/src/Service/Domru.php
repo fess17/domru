@@ -44,7 +44,7 @@ class Domru
 
     public const API_PROFILES = 'https://api-mh.ertelecom.ru/rest/v1/subscribers/profiles';
 
-    public const API_FINANCES = 'https://api-mh.ertelecom.ru/rest/v1/subscribers/profiles/finances';
+    public const API_FINANCES = 'https://api-mh.ertelecom.ru/api/mh-payment/mobile/v1/finance?placeId=';
 
     public const API_CAMERAS = 'https://api-mh.ertelecom.ru/rest/v1/forpost/cameras';
 
@@ -219,21 +219,24 @@ class Domru
             function () {
                 $savedAccounts = array_keys($this->registry->accounts);
                 $this->registry->accounts = $this->accountService->getAccounts();
-                $newAcounts = array_diff(array_keys($this->registry->accounts), $savedAccounts);
+                $newAccounts = array_diff(array_keys($this->registry->accounts), $savedAccounts);
                 $deletedAccounts = array_diff($savedAccounts, array_keys($this->registry->accounts));
 
                 $this->registry->accountsUpdate($deletedAccounts);
-                if ($newAcounts) {
+                if ($newAccounts) {
                     $this->refreshTokens()
                         ->then(
-                            function () use ($newAcounts) {
+                            function () use ($newAccounts) {
+                                $this->logger->debug('addPeriodicTimer: ['.$newAccounts.'] start');
                                 $promises = [];
-                                foreach ($newAcounts as $account) {
+                                foreach ($newAccounts as $account) {
+                                    $this->logger->debug('addPeriodicTimer: ['.$account.'] inside');
                                     $promises[] = $this->fetchData(self::API_SUBSCRIBER_PLACES, 'subscriberPlaces', $account);
-                                    $promises[] = $this->fetchData(self::API_FINANCES, 'finances', $account);
+                                    $promises[] = $this->fetchData(self::API_FINANCES.$account['placeId'], 'finances', $account);
                                     $promises[] = $this->fetchData(self::API_PROFILES, 'profiles', $account);
                                     $promises[] = $this->fetchData(self::API_CAMERAS, 'cameras', $account);
                                 }
+                                $this->logger->debug('addPeriodicTimer: ['.$newAccounts.'] end');
 
                                 return all($promises);
                             }
