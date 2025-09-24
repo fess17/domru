@@ -19,7 +19,7 @@
 	"ports_description": {
 		"80/tcp": "GUI http access"
 	},
-	"image": "fess17/domru-{arch}",
+	"image": "fess171/domru-{arch}",
 	"ingress": true,
 	"ingress_port": 80,
 	"panel_icon": "mdi:home-city-outline",
