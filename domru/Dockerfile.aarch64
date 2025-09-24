@@ -1,6 +1,10 @@
 FROM arm64v8/php:7.4.14-fpm
 
-# Update & instal software
+#Fix repos
+RUN sed -i s/deb.debian.org/archive.debian.org/g /etc/apt/sources.list &&\
+    sed -i s/security.debian.org/archive.debian.org/g /etc/apt/sources.list
+
+# Update & install software
 RUN apt-get update && \
     apt-get upgrade -y && \
     apt-get install -y nginx supervisor zip unzip gnupg apt-transport-https lsb-release cron git \

@@ -1,6 +1,10 @@
 FROM php:7.4.14-fpm
 
-# Update & instal software
+#Fix repos
+RUN sed -i s/deb.debian.org/archive.debian.org/g /etc/apt/sources.list &&\
+    sed -i s/security.debian.org/archive.debian.org/g /etc/apt/sources.list
+
+# Update & install software
 RUN apt-get update > /dev/null 2>&1 && \
     apt-get upgrade -y > /dev/null 2>&1 && \
     apt-get install -y nginx supervisor zip unzip gnupg apt-transport-https lsb-release cron git \

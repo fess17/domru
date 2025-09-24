@@ -1,6 +1,10 @@
 FROM i386/php:7.4.14-fpm
 
-# Update & instal software
+#Fix repos
+RUN sed -i s/deb.debian.org/archive.debian.org/g /etc/apt/sources.list &&\
+    sed -i s/security.debian.org/archive.debian.org/g /etc/apt/sources.list
+
+# Update & install software
 RUN apt-get update && \
     apt-get upgrade -y && \
     apt-get install -y nginx supervisor zip unzip gnupg apt-transport-https lsb-release cron git \
@@ -10,6 +14,7 @@ RUN apt-get update && \
 RUN curl -sS https://getcomposer.org/installer | php -- \
     --filename=composer \
     --install-dir=/usr/bin \
+    --disable-tls \
     --version=2.0.8 && \
     chmod +x /usr/bin/composer
 
