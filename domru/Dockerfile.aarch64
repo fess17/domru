@@ -1,4 +1,8 @@
-FROM arm64v8/php:8.4-fpm
+FROM arm64v8/php:7.4.14-fpm
+
+#Fix repos
+RUN sed -i s/deb.debian.org/archive.debian.org/g /etc/apt/sources.list &&\
+    sed -i s/security.debian.org/archive.debian.org/g /etc/apt/sources.list
 
 # Update & install software
 RUN apt-get update && \
@@ -10,7 +14,7 @@ RUN apt-get update && \
 RUN curl -sS https://getcomposer.org/installer | php -- \
     --filename=composer \
     --install-dir=/usr/bin \
-    --version=2.8.12 && \
+    --version=2.0.8 && \
     chmod +x /usr/bin/composer
 
 RUN docker-php-ext-install -j$(nproc) intl
