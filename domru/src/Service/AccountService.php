@@ -70,7 +70,7 @@ class AccountService
             $data[] = $key.'|'.json_encode($account, JSON_UNESCAPED_UNICODE);
         }
 
-        return file_put_contents($this->path, implode("\n", $data)) ? true : false;
+        return (bool)file_put_contents($this->path, implode("\n", $data));
     }
 
     public function removeAccount($accountId): bool
@@ -88,7 +88,7 @@ class AccountService
             $data[] = $key.'|'.json_encode($account, JSON_UNESCAPED_UNICODE);
         }
 
-        return file_put_contents($this->path, implode("\n", $data)."\n") ? true : false;
+        return (bool)file_put_contents($this->path, implode("\n", $data) . "\n");
     }
 
     public function fetchApi()

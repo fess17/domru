@@ -2,6 +2,7 @@
 
 namespace App\Service;
 
+use Error;
 use Exception;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Log\LoggerAwareTrait;
@@ -31,7 +32,7 @@ class HomeAssistant
             $error = '[HA] Api error: ['.$e->getMessage().'] '.$e->getResponse()->getBody()->getContents();
             $this->logger->error($error);
 
-            return reject($error);
+            return reject(new Error($error));
         } catch (Throwable $e) {
             dd($e);
         }
@@ -46,8 +47,8 @@ class HomeAssistant
     {
         $this->logger->debug(__METHOD__.' | Run');
 
-        $this->client = new Browser($this->registry->loop);
-        $this->client->get(
+        $client = new Browser($this->registry->loop);
+        $client->get(
             self::API_NETWORK_INFO,
             [
                 'Authorization' => sprintf('Bearer %s', $haToken),
@@ -57,11 +58,12 @@ class HomeAssistant
                 function (ResponseInterface $response) {
                     $data = json_decode($response->getBody()->getContents(), true);
                     if (!is_array($data) || !isset($data['result']) || $data['result'] !== 'ok') {
-                        return reject('Api error [HA]: [HTTP OK] Response json failed');
+                        return reject(new Error('Api error [HA]: [HTTP OK] Response json failed'));
                     }
 
                     $this->logger->debug('[HA] Network info fetching complete');
                     $this->registry->haNetwork = $data['data'];
+                    return null;
                 },
                 function (ResponseException $e) {
                     $this->apiError($e);

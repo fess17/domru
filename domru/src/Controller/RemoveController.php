@@ -4,14 +4,10 @@ namespace App\Controller;
 
 use App\Service\AccountService;
 use App\Service\AsyncRegistry;
-use App\Service\Domru;
 use App\Traits\HttpClientAwareTrait;
 use Exception;
-use GuzzleHttp\Exception\GuzzleException;
-use Ramsey\Uuid\Uuid;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\Routing\Annotation\Route;
 
 class RemoveController extends AbstractController
 {
