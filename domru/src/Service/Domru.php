@@ -83,7 +83,6 @@ class Domru
     {
         try {
             $error = '['.$account.'] Api error: ['.$e->getMessage().']
-                     Uri: '.$e->getRequest()->getUri().'
                      Contents: '.$e->getResponse()->getBody()->getContents();
             $this->logger->error($error);
 
