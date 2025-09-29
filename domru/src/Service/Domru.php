@@ -3,6 +3,7 @@
 namespace App\Service;
 
 use App\Traits\HttpClientAwareTrait;
+use Error;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Log\LoggerAwareTrait;
 use Psr\Log\LoggerInterface;
@@ -46,9 +47,9 @@ class Domru
 
     public const API_FINANCES = 'https://api-mh.ertelecom.ru/api/mh-payment/mobile/v1/finance?placeId=';
 
-    public const API_CAMERAS = 'https://api-mh.ertelecom.ru/rest/v1/forpost/cameras';
+    public const API_ACCESS_CONTROLS = 'https://api-mh.ertelecom.ru/rest/v1/places/%d/accesscontrols';
 
-    public const API_SUBSCRIBER_PLACES = 'https://api-mh.ertelecom.ru/rest/v1/subscriberplaces';
+    public const API_SUBSCRIBER_PLACES = 'https://api-mh.ertelecom.ru/rest/v3/subscriber-places?placeId=';
 
     public const API_OPEN_DOOR = 'https://api-mh.ertelecom.ru/rest/v1/places/%d/accesscontrols/%d/actions';
 
@@ -81,10 +82,12 @@ class Domru
     private function apiError(string $account, \Exception $e)
     {
         try {
-            $error = '['.$account.'] Api error: ['.$e->getMessage().'] Contents: '.$e->getResponse()->getBody()->getContents();
+            $error = '['.$account.'] Api error: ['.$e->getMessage().']
+                     Uri: '.$e->getRequest()->getUri().'
+                     Contents: '.$e->getResponse()->getBody()->getContents();
             $this->logger->error($error);
 
-            return reject($error);
+            return reject(new Error($error));
         } catch (\Throwable $e) {
             dd($e);
         }
@@ -232,9 +235,9 @@ class Domru
                                 foreach ($newAccounts as $account) {
                                     $this->logger->debug('addPeriodicTimer: ['.$account.'] inside');
                                     $promises[] = $this->fetchData(self::API_SUBSCRIBER_PLACES, 'subscriberPlaces', $account);
-                                    $promises[] = $this->fetchData(self::API_FINANCES.$account['placeId'], 'finances', $account);
+                                    $promises[] = $this->fetchData(self::API_FINANCES, 'finances', $account);
                                     $promises[] = $this->fetchData(self::API_PROFILES, 'profiles', $account);
-                                    $promises[] = $this->fetchData(self::API_CAMERAS, 'cameras', $account);
+                                    $promises[] = $this->fetchData(self::API_ACCESS_CONTROLS, 'accessControls', $account);
                                 }
                                 $this->logger->debug('addPeriodicTimer: ['.$newAccounts.'] end');
 
@@ -264,51 +267,6 @@ class Domru
         $this->registry->accounts = $this->accountService->getAccounts();
     }
 
-    private function watchdog()
-    {
-        $promises = [
-            $this->fetchData(self::API_FINANCES, 'finances')->then(
-                function () {
-                    $this->logger->debug('Watchdog for finances complete');
-                    $this->registry->loop->addPeriodicTimer(
-                        self::REFRESH_FINANCES_INTERVAL,
-                        fn() => $this->fetchData(self::API_FINANCES, 'finances')
-                    );
-                }
-            ),
-            $this->fetchData(self::API_PROFILES, 'profiles')->then(
-                function () {
-                    $this->logger->debug('Watchdog for profiles complete');
-                    $this->registry->loop->addPeriodicTimer(
-                        self::REFRESH_PROFILES_INTERVAL,
-                        fn() => $this->fetchData(self::API_PROFILES, 'profiles')
-                    );
-                }
-            ),
-            $this->fetchData(self::API_CAMERAS, 'cameras')->then(
-                function () {
-                    $this->logger->debug('Watchdog for cameras complete');
-                    $this->registry->loop->addPeriodicTimer(
-                        self::REFRESH_CAMERAS_INTERVAL,
-                        fn() => $this->fetchData(self::API_CAMERAS, 'cameras')
-                    );
-                }
-            ),
-            $this->fetchData(self::API_SUBSCRIBER_PLACES, 'subscriberPlaces')->then(
-                function () {
-                    $this->logger->debug('Watchdog for subscriberPlaces complete');
-                    $this->registry->loop->addPeriodicTimer(
-                        self::REFRESH_SUBSCRIBER_PLACES_INTERVAL,
-                        fn() => $this->fetchData(self::API_SUBSCRIBER_PLACES, 'subscriberPlaces')
-                    );
-                }
-            ),
-        ];
-
-        return all($promises)
-            ->then(fn() => $this->registry->state = AsyncRegistry::STATE_LOOP);
-    }
-
     private function refreshTokens(): PromiseInterface
     {
         $promises = [];
@@ -325,7 +283,7 @@ class Domru
                     function (ResponseInterface $response) use ($account, $accountData) {
                         $data = json_decode($response->getBody()->getContents(), true);
                         if (!is_array($data) || empty($data['accessToken'])) {
-                            return reject('Api error ['.$account.']: [HTTP OK] Response json failed');
+                            return reject(new Error('Api error ['.$account.']: [HTTP OK] Response json failed'));
                         }
 
                         $this->logger->debug('['.$account.'] Access token refresh success');
@@ -367,7 +325,7 @@ class Domru
         foreach ($tokensForFetch as $account => $token) {
             $this->logger->debug('['.$account.'] Trying to fetch: '.$storageKey);
             $promises[$account] = $this->client->get(
-                $apiUrl,
+                sprintf($apiUrl, $this->registry->accounts[$account]['data']['placeId']),
                 [
                     'Operator'      => $this->registry->accounts[$account]['data']['operatorId'],
                     'User-Agent'    => sprintf(
@@ -411,26 +369,24 @@ class Domru
     {
         $all = $this->registry->all();
         $accountData = $all['accounts'][$account];
-        $subscriberPlaces = $accountData['subscriberPlaces'] ?? null;
-        if (!is_array($subscriberPlaces)) {
-            return reject('Subscriber places is empty');
+        $accessControls = $accountData['accessControls'] ?? null;
+        if (!is_array($accessControls)) {
+            return reject(new Error('Subscriber accessControls is empty'));
         }
+        $placeId = $all['accounts'][$account]['subscriberPlaces']['place']['id'];
 
-        $useAccessControl = $placeId = $accessControlId = null;
+        $useAccessControl = $accessControlId = null;
 
-        foreach ($subscriberPlaces as $subscriberPlace) {
-            foreach ($subscriberPlace['place']['accessControls'] as $accessControl) {
-                if (isset($accessControl['cameraId']) && $accessControl['cameraId'] === $cameraId) {
-                    $placeId = $subscriberPlace['place']['id'];
-                    $accessControlId = $accessControl['id'];
-                    $useAccessControl = $subscriberPlace['place'];
-                    break 2;
-                }
+        foreach ($accessControls as $accessControl) {
+            if (isset($accessControl['externalCameraId']) && $accessControl['externalCameraId'] === $cameraId) {
+                $accessControlId = $accessControl['id'];
+                $useAccessControl = $accessControl;
+                break;
             }
         }
 
         if (!$placeId || !$accessControlId || !$useAccessControl) {
-            return reject('Wrong parameters');
+            return reject(new Error('Wrong parameters'));
         }
 
         return resolve(
@@ -446,7 +402,7 @@ class Domru
     {
         $subscriberPlaces = $this->registry->fetch('subscriberPlaces', $account);
         if (!is_array($subscriberPlaces)) {
-            return reject('Subscriber places is empty');
+            return reject(new Error('Subscriber places is empty'));
         }
 
         $place = null;
@@ -465,7 +421,7 @@ class Domru
         }
 
         if (!$placeId || !$place) {
-            return reject('Wrong parameters');
+            return reject(new Error('Wrong parameters'));
         }
 
         return resolve(
@@ -479,19 +435,19 @@ class Domru
     public function openDoor(string $account, int $cameraId): PromiseInterface
     {
         if ($this->registry->state !== AsyncRegistry::STATE_LOOP) {
-            return reject('Api not ready');
+            return reject(new Error('Api not ready'));
         }
 
         return $this->getPlaceIdAccessControlId($account, $cameraId)
             ->then(
                 function ($use) use ($account) {
                     if ($use['accessControl']['allowOpen'] === false) {
-                        return reject('Access control allowOpen disabled');
+                        return reject(new Error('Access control allowOpen disabled'));
                     }
 
                     $this->logger->debug(
                         'Trying to open door for place',
-                        ['placeId' => $use['placeId'], 'accessControlId' => $use['accessControlId']]
+                        ['name' => $use['accessControl']['name'], 'accessControlId' => $use['accessControlId']]
                     );
 
                     return $this->client->post(
@@ -511,7 +467,7 @@ class Domru
                         function (ResponseInterface $response) use ($account) {
                             $data = json_decode($response->getBody()->getContents(), true);
                             if (!is_array($data) || !isset($data['data']['status'])) {
-                                return reject('['.$account.'] Api error: [HTTP OK] Response json failed');
+                                return reject(new Error('['.$account.'] Api error: [HTTP OK] Response json failed'));
                             }
                             $this->logger->debug('Door opened');
 
@@ -539,23 +495,22 @@ class Domru
     public function cameraSnapshot(string $account, int $cameraId = null): PromiseInterface
     {
         if ($this->registry->state !== AsyncRegistry::STATE_LOOP) {
-            return reject('Api not ready');
+            return reject(new Error('Api not ready'));
         }
 
-        $cameras = $this->registry->fetch('cameras', $account);
+        $accessControls = $this->registry->fetch('accessControls', $account);
 
-        if (!count($cameras) || !isset($cameras[0]['ID'])) {
-            return reject('There is no available camera for streaming');
+        if (!count($accessControls)/* || !isset($accessControls[0]['ID'])*/) {
+            return reject(new Error('There is no available accessControl for streaming'));
         }
 
-        $cameraToUse = null;
-        foreach ($cameras as $camera) {
-            if ($cameraId && (int)$camera['ID'] === $cameraId) {
+        foreach ($accessControls as $accessControl) {
+            if ($cameraId && (int)$accessControl['externalCameraId'] === $cameraId) {
                 // Необходимая камера
                 break;
             }
             if ($cameraId === null) {
-                $cameraId = (int)$camera['ID'];
+                $cameraId = (int)$accessControl['externalCameraId'];
                 break;
             }
         }
@@ -604,25 +559,25 @@ class Domru
     public function cameraStream(string $account, int $cameraId = null, int $timestamp = null): PromiseInterface
     {
         if ($this->registry->state !== AsyncRegistry::STATE_LOOP) {
-            return reject('Api not ready');
+            return reject(new Error('Api not ready'));
         }
 
-        $cameras = $this->registry->fetch('cameras', $account);
+        $accessControls = $this->registry->fetch('accessControls', $account);
 
-        if (!count($cameras) || !isset($cameras[0]['ID'])) {
-            return reject('There is no available camera for streaming');
+        if (!count($accessControls)/* || !isset($accessControls[0]['ID'])*/) {
+            return reject(new Error('There is no available accessControl for streaming'));
         }
 
-        $cameraToUse = null;
-        foreach ($cameras as $camera) {
-            if ($cameraId && (int)$camera['ID'] === $cameraId) {
+        $accessControlToUse = null;
+        foreach ($accessControls as $accessControl) {
+            if ($cameraId && (int)$accessControl['externalCameraId'] === $cameraId) {
                 // Необходимая камера
-                $cameraToUse = $camera;
+                $accessControlToUse = $accessControl;
                 break;
             }
             if ($cameraId === null) {
-                $cameraId = (int)$camera['ID'];
-                $cameraToUse = $camera;
+                $cameraId = (int)$accessControl['externalCameraId'];
+                $accessControlToUse = $accessControl;
                 break;
             }
         }
@@ -633,7 +588,7 @@ class Domru
         ];
         if ($timestamp) {
             $httpQuery['TS'] = $timestamp;
-            $httpQuery['TZ'] = $cameraToUse['TimeZone'];
+            $httpQuery['TZ'] = $accessControlToUse['timeZone'];
         }
 
         return $this->client->get(
@@ -652,7 +607,7 @@ class Domru
                 $data = json_decode($response->getBody()->getContents(), true);
 
                 if (!is_array($data) || !is_array($data['data']) || empty($data['data']['URL'])) {
-                    return reject('Api error: [HTTP OK] Response json failed');
+                    return reject(new Error('Api error: [HTTP OK] Response json failed'));
                 }
 
                 return resolve($data['data']['URL']);
@@ -674,7 +629,7 @@ class Domru
     public function events(string $account, int $placeId = null, int $limit = null): PromiseInterface
     {
         if ($this->registry->state !== AsyncRegistry::STATE_LOOP) {
-            return reject('Api not ready');
+            return reject(new Error('Api not ready'));
         }
 
         return $this->getPlaceId($account, $placeId)
@@ -701,8 +656,8 @@ class Domru
                         function (ResponseInterface $response) use ($account, $limit) {
                             $data = json_decode($response->getBody()->getContents(), true);
                             if (!is_array($data) || !isset($data['data'])) {
-                                return reject('['.$account.'] Api error: [HTTP OK] Response json failed');
-                            };
+                                return reject(new Error('['.$account.'] Api error: [HTTP OK] Response json failed'));
+                            }
 
                             if ($limit) {
                                 $returnData = [];
@@ -736,5 +691,50 @@ class Domru
                     return reject($error);
                 }
             );
+    }
+
+    private function watchdog(): PromiseInterface
+    {
+        $promises = [
+            $this->fetchData(self::API_FINANCES, 'finances')->then(
+                function () {
+                    $this->logger->debug('Watchdog for finances complete');
+                    $this->registry->loop->addPeriodicTimer(
+                        self::REFRESH_FINANCES_INTERVAL,
+                        fn() => $this->fetchData(self::API_FINANCES, 'finances')
+                    );
+                }
+            ),
+            $this->fetchData(self::API_PROFILES, 'profiles')->then(
+                function () {
+                    $this->logger->debug('Watchdog for profiles complete');
+                    $this->registry->loop->addPeriodicTimer(
+                        self::REFRESH_PROFILES_INTERVAL,
+                        fn() => $this->fetchData(self::API_PROFILES, 'profiles')
+                    );
+                }
+            ),
+            $this->fetchData(self::API_ACCESS_CONTROLS, 'accessControls')->then(
+                function () {
+                    $this->logger->debug('Watchdog for cameras complete');
+                    $this->registry->loop->addPeriodicTimer(
+                        self::REFRESH_CAMERAS_INTERVAL,
+                        fn() => $this->fetchData(self::API_ACCESS_CONTROLS, 'accessControls')
+                    );
+                }
+            ),
+            $this->fetchData(self::API_SUBSCRIBER_PLACES, 'subscriberPlaces')->then(
+                function () {
+                    $this->logger->debug('Watchdog for subscriberPlaces complete');
+                    $this->registry->loop->addPeriodicTimer(
+                        self::REFRESH_SUBSCRIBER_PLACES_INTERVAL,
+                        fn() => $this->fetchData(self::API_SUBSCRIBER_PLACES, 'subscriberPlaces')
+                    );
+                }
+            ),
+        ];
+
+        return all($promises)
+            ->then(fn() => $this->registry->state = AsyncRegistry::STATE_LOOP);
     }
 }

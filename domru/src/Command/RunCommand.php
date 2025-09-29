@@ -9,14 +9,13 @@ use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Log\LoggerAwareTrait;
 use Psr\Log\LoggerInterface;
-use React\EventLoop\Factory;
+use React\EventLoop\Loop;
+use React\Http\HttpServer;
 use React\Http\Message\Response;
-use React\Http\Server;
 use React\Promise\PromiseInterface;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
-use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Exception\ResourceNotFoundException;
 use Symfony\Component\Routing\Matcher\UrlMatcher;
@@ -48,7 +47,7 @@ class RunCommand extends Command
         $this->domru = $domru;
         $this->homeAssistant = $homeAssistant;
         $this->registry = AsyncRegistry::getInstance();
-        $this->registry->loop = Factory::create();
+        $this->registry->loop = Loop::get();
         $this->domru->setupRegistry($this->registry);
         $this->homeAssistant->setupRegistry($this->registry);
 
@@ -57,7 +56,7 @@ class RunCommand extends Command
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        $server = new Server(
+        $server = new HttpServer(
             $this->registry->loop,
             function (ServerRequestInterface $serverRequest) {
                 try {

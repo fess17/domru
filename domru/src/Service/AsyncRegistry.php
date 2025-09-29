@@ -2,8 +2,6 @@
 
 namespace App\Service;
 
-use React\EventLoop\LoopInterface;
-
 /**
  * @property $state     int
  * @property $accounts  array
@@ -45,16 +43,16 @@ class AsyncRegistry
     {
         $data = $this->data;
         foreach ($data['accounts'] as $account => &$accountData) {
-            $cameras = [];
-            foreach ($this->fetch('cameras', $account) as $camera) {
-                $cameras[$camera['ID']] = $camera;
+            /*$accessControls = [];
+            foreach ($this->fetch('accessControls', $account) as $accessControl) {
+                $accessControls[$accessControl['externalCameraId']] = $accessControl;
             }
             $subscriberPlaces = $this->fetch('subscriberPlaces', $account);
 
             if ($subscriberPlaces) {
                 foreach ($subscriberPlaces as &$subscriberPlace) {
                     foreach ($subscriberPlace['place']['accessControls'] as &$accessControl) {
-                        foreach ($cameras as &$cameraToWork) {
+                        foreach ($accessControls as &$cameraToWork) {
                             foreach ($cameraToWork['ParentGroups'] as $parentGroup) {
                                 if ($parentGroup['ID'] === (int)$accessControl['forpostGroupId']) {
                                     $accessControl['cameraId'] = $cameraToWork['ID'];
@@ -71,7 +69,7 @@ class AsyncRegistry
 
                 foreach ($subscriberPlaces as &$subscriberPlace) {
                     $subscriberPlace['additionalCameras'] = false;
-                    foreach ($cameras as $camera) {
+                    foreach ($accessControls as $camera) {
                         if (!isset($camera['isSubscriber'])) {
                             $subscriberPlace['additionalCameras'][] = $camera['ID'];
                         }
@@ -81,12 +79,12 @@ class AsyncRegistry
                         $subscriberPlace['additionalCameras'] = array_unique($subscriberPlace['additionalCameras']);
                     }
                 }
-            }
+            }*/
 
             $accountData['finances'] = $this->fetch('finances', $account);
             $accountData['profiles'] = $this->fetch('profiles', $account);
-            $accountData['cameras'] = $cameras;
-            $accountData['subscriberPlaces'] = $subscriberPlaces;
+            $accountData['accessControls'] = $this->fetch('accessControls', $account);
+            $accountData['subscriberPlaces'] = $this->fetch('subscriberPlaces', $account);
         }
 
         unset($data['loop']);

@@ -53,31 +53,35 @@
                                             {% if placeCounter > 0 %}
                                                 <hr />
                                             {% endif %}
-                                            {% for accessControl in place.place.accessControls %}
+                                            {% for accessControl in account.accessControls %}
                                                 <div class="row text-center">
+                                                    {% if accessControl.externalCameraId %}
                                                     <div class="col-8">
                                                         <figure class="figure">
-                                                            <img src="{{ hassioIngress }}/api/camera/snapshot/{{ account.address.accountId }}/{{ accessControl.cameraId }}" class="figure-img img-fluid rounded" alt="Камера">
+                                                            <img src="{{ hassioIngress }}/api/camera/snapshot/{{ account.address.accountId }}/{{ accessControl.externalCameraId }}" class="figure-img img-fluid rounded" alt="Камера">
                                                         </figure>
                                                     </div>
+                                                    {% endif %}
                                                     <div class="col-4 text-right">
                                                         <h6>{{ accessControl.name }}</h6>
                                                         <div class="form-group">
                                                             <button class="btn btn-primary"
-                                                                    onclick="openDoor(this, '{{ account.address.accountId }}', '{{ accessControl.cameraId }}')">
+                                                                    onclick="openDoor(this, '{{ account.address.accountId }}', '{{ accessControl.externalCameraId }}')">
                                                                 Открыть дверь
                                                             </button>
                                                         </div>
                                                     </div>
                                                 </div>
+                                                {% if accessControl.externalCameraId %}
                                                 <div class="row text-left">
                                                     <div class="col">
                                                         <h4>Видеопоток с камеры домофона</h4>
                                                         <div class="form-group">
-                                                            <input type="text" class="form-control" readonly value="http://{{ hostIp }}:20880/api/camera/stream/{{ account.address.accountId }}/{{ accessControl.cameraId }}">
+                                                            <input type="text" class="form-control" readonly value="http://{{ hostIp }}:20880/api/camera/stream/{{ account.address.accountId }}/{{ accessControl.externalCameraId }}">
                                                         </div>
                                                     </div>
                                                 </div>
+                                                {% endif %}
                                             {% endfor %}
 
                                             <div class="text-center">
@@ -160,12 +164,13 @@
                                                 <div class="col">
                                                     <div class="d-none ha-integration" data-placeId="{{ place.place.id }}">
                                                         <h5><code>configuration.yaml</code></h5>
-                                                        <pre>camera:{% for accessControl in place.place.accessControls %}
+                                                        <pre># Камеры
+camera:{% for accessControl in account.accessControls %}
 
   - platform: generic
-    name: domru_domofon_{{ accessControl.cameraId }}
-    still_image_url: http://{{ hostIp }}:20880/api/camera/snapshot/{{ account.address.accountId }}/{{ accessControl.cameraId }}
-    stream_source: http://{{ hostIp }}:20880/api/camera/stream/{{ account.address.accountId }}/{{ accessControl.cameraId }}
+    name: domru_domofon_{{ accessControl.externalCameraId }}
+    still_image_url: http://{{ hostIp }}:20880/api/camera/snapshot/{{ account.address.accountId }}/{{ accessControl.externalCameraId }}
+    stream_source: http://{{ hostIp }}:20880/api/camera/stream/{{ account.address.accountId }}/{{ accessControl.externalCameraId }}
                                             {% endfor %}
 {% if place.additionalCameras and account.cameras|length > 1 %}
     {% for camera in account.cameras %}
@@ -180,6 +185,7 @@
 {% endif %}
 
 {% if account.finances and account.finances.balance %}
+# Баланс
 sensors:
   - platform: rest
     name: domru_domofon_finances
@@ -190,34 +196,35 @@ sensors:
       User-Agent: homeassistant
 {% endif %}
 
+# Открытие дверей
 rest_command:
-{% for accessControl in place.place.accessControls %}
-  domru_open_door_{{ accessControl.cameraId }}:
-    url: http://{{ hostIp }}:20880/api/open/{{ account.address.accountId }}/{{ accessControl.cameraId }}
+{% for accessControl in account.accessControls %}
+  domru_open_door_{{ accessControl.externalCameraId }}:
+    url: http://{{ hostIp }}:20880/api/open/{{ account.address.accountId }}/{{ accessControl.externalCameraId }}
 
 {% endfor %}
 script:
-{% for accessControl in place.place.accessControls %}
-  domru_open_door_{{ accessControl.cameraId }}:
+{% for accessControl in account.accessControls %}
+  domru_open_door_{{ accessControl.externalCameraId }}:
     sequence:
-      - service: rest_command.domru_open_door_{{ accessControl.cameraId }}
+      - service: rest_command.domru_open_door_{{ accessControl.externalCameraId }}
 {% endfor %}
                                                         </pre>
 
                                                         <h5><code>ui-lovelace.yaml</code></h5>
-                                                        <pre>{% for accessControl in place.place.accessControls %}
+                                                        <pre>{% for accessControl in account.accessControls %}
 - type: picture-glance
   title: "{{ accessControl.name }}"
   entities:
-    - entity: script.domru_open_door_{{ accessControl.cameraId }}
+    - entity: script.domru_open_door_{{ accessControl.externalCameraId }}
       icon: "mdi:door-open"
       name: "Открыть дверь"
       tap_action:
         action: toggle
   hold_action:
       action: call-service
-      service: rest_command.domru_open_door_{{ accessControl.cameraId }}
-  camera_image: camera.domru_domofon_{{ accessControl.cameraId }}
+      service: rest_command.domru_open_door_{{ accessControl.externalCameraId }}
+  camera_image: camera.domru_domofon_{{ accessControl.externalCameraId }}
 
 {% endfor %}
 </pre>
