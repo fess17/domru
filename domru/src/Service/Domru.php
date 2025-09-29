@@ -322,15 +322,15 @@ class Domru
         $this->logger->debug('Fetching '.$storageKey.' for accounts ()', array_keys($tokensForFetch));
 
         foreach ($tokensForFetch as $account => $token) {
-            $uri = sprintf($apiUrl, $this->registry->accounts[$account]['placeId']);
+            $uri = sprintf($apiUrl, $this->registry->accounts[$account]['address']['placeId']);
             $this->logger->debug('['.$uri.'] Trying to fetch: '.$storageKey);
             $promises[$account] = $this->client->get(
                 $uri,
                 [
-                    'Operator'      => $this->registry->accounts[$account]['operatorId'],
+                    'Operator'      => $this->registry->accounts[$account]['address']['operatorId'],
                     'User-Agent'    => sprintf(
                         $this->asyncUserAgent,
-                        $this->registry->accounts['operatorId'],
+                        $this->registry->accounts[$account]['address']['operatorId'],
                         $this->registry->accounts[$account]['uuid']
                     ),
                     'Authorization' => 'Bearer '.$token,
