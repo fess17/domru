@@ -45,11 +45,11 @@ class Domru
 
     public const API_PROFILES = 'https://api-mh.ertelecom.ru/rest/v1/subscribers/profiles';
 
-    public const API_FINANCES = 'https://api-mh.ertelecom.ru/api/mh-payment/mobile/v1/finance?placeId=';
+    public const API_FINANCES = 'https://api-mh.ertelecom.ru/api/mh-payment/mobile/v1/finance?placeId=%d';
 
     public const API_ACCESS_CONTROLS = 'https://api-mh.ertelecom.ru/rest/v1/places/%d/accesscontrols';
 
-    public const API_SUBSCRIBER_PLACES = 'https://api-mh.ertelecom.ru/rest/v3/subscriber-places?placeId=';
+    public const API_SUBSCRIBER_PLACES = 'https://api-mh.ertelecom.ru/rest/v3/subscriber-places?placeId=%d';
 
     public const API_OPEN_DOOR = 'https://api-mh.ertelecom.ru/rest/v1/places/%d/accesscontrols/%d/actions';
 
@@ -715,7 +715,7 @@ class Domru
             ),
             $this->fetchData(self::API_ACCESS_CONTROLS, 'accessControls')->then(
                 function () {
-                    $this->logger->debug('Watchdog for cameras complete');
+                    $this->logger->debug('Watchdog for access control complete');
                     $this->registry->loop->addPeriodicTimer(
                         self::REFRESH_CAMERAS_INTERVAL,
                         fn() => $this->fetchData(self::API_ACCESS_CONTROLS, 'accessControls')
@@ -724,7 +724,7 @@ class Domru
             ),
             $this->fetchData(self::API_SUBSCRIBER_PLACES, 'subscriberPlaces')->then(
                 function () {
-                    $this->logger->debug('Watchdog for subscriberPlaces complete');
+                    $this->logger->debug('Watchdog for subscriber places complete');
                     $this->registry->loop->addPeriodicTimer(
                         self::REFRESH_SUBSCRIBER_PLACES_INTERVAL,
                         fn() => $this->fetchData(self::API_SUBSCRIBER_PLACES, 'subscriberPlaces')
