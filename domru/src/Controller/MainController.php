@@ -8,6 +8,7 @@ use App\Traits\HttpClientAwareTrait;
 use Exception;
 use GuzzleHttp\Exception\GuzzleException;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Routing\Annotation\Route;
 
 class MainController extends AbstractController
 {
