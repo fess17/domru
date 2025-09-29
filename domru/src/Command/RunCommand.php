@@ -228,9 +228,9 @@ class RunCommand extends Command
                                 if ($event['source']['type'] === 'accessControl') {
                                     foreach($accountData['subscriberPlaces'] as $subscriberPlace) {
                                         if ($subscriberPlace['place']['id'] === $event['placeId']) {
-                                            foreach ($subscriberPlace['place']['accessControls'] as $accessControl) {
+                                            foreach ($accountData['accessControls'] as $accessControl) {
                                                 if ($accessControl['id'] === $event['source']['id']) {
-                                                    $event['cameraId'] = $accessControl['cameraId'];
+                                                    $event['cameraId'] = $accessControl['externalCameraId'];
                                                 }
                                             }
                                         }

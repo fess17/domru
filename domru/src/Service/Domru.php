@@ -318,13 +318,14 @@ class Domru
                 $forcedAccount => $tokensForFetch[$forcedAccount],
             ];
         }
-
-        $this->logger->debug('Fetching '.$storageKey.' for accounts', array_keys($tokensForFetch));
+        $this->logger->debug('accounts: '.$this->registry->accounts);
+        $this->logger->debug('Fetching '.$storageKey.' for accounts ()', array_keys($tokensForFetch));
 
         foreach ($tokensForFetch as $account => $token) {
-            $this->logger->debug('['.$account.'] Trying to fetch: '.$storageKey);
+            $uri = sprintf($apiUrl, $this->registry->accounts[$account]['data']['placeId']);
+            $this->logger->debug('['.$uri.'] Trying to fetch: '.$storageKey);
             $promises[$account] = $this->client->get(
-                sprintf($apiUrl, $this->registry->accounts[$account]['data']['placeId']),
+                $uri,
                 [
                     'Operator'      => $this->registry->accounts[$account]['data']['operatorId'],
                     'User-Agent'    => sprintf(
