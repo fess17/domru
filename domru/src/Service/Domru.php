@@ -318,7 +318,7 @@ class Domru
                 $forcedAccount => $tokensForFetch[$forcedAccount],
             ];
         }
-//        $this->logger->debug('accounts: '.json_encode($this->registry->accounts, JSON_HEX_TAG));
+        $this->logger->debug('accounts: '.json_encode($this->registry->accounts, JSON_HEX_TAG));
         $this->logger->debug('Fetching '.$storageKey.' for accounts ()', array_keys($tokensForFetch));
 
         foreach ($tokensForFetch as $account => $token) {
@@ -592,19 +592,20 @@ class Domru
         }
 
         $uri = $url.http_build_query($httpQuery);
-        $this->logger->debug('['.$uri.'] Trying to fetch camera stream');
+        $headers = [
+            'Operator'      => $this->registry->accounts[$account]['data']['operatorId'],
+            'User-Agent'    => sprintf(
+                $this->asyncUserAgent,
+                $this->registry->accounts[$account]['data']['operatorId'],
+                $this->registry->accounts[$account]['uuid']
+            ),
+            'Authorization' => 'Bearer '.$this->registry->getToken($account),
+        ];
+        $this->logger->debug('['.$uri.']:['.json_encode($headers, JSON_HEX_TAG).'] Trying to fetch camera stream');
 
         return $this->client->get(
             $uri,
-            [
-                'Operator'      => $this->registry->accounts[$account]['data']['operatorId'],
-                'User-Agent'    => sprintf(
-                    $this->asyncUserAgent,
-                    $this->registry->accounts['data']['operatorId'],
-                    $this->registry->accounts[$account]['uuid']
-                ),
-                'Authorization' => 'Bearer '.$this->registry->getToken($account),
-            ]
+            $headers
         )->then(
             function (ResponseInterface $response) {
                 $data = json_decode($response->getBody()->getContents(), true);
