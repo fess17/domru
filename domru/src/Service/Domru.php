@@ -318,7 +318,7 @@ class Domru
                 $forcedAccount => $tokensForFetch[$forcedAccount],
             ];
         }
-        $this->logger->debug('accounts: '.$this->registry->accounts);
+        $this->logger->debug('accounts: '.json_encode($this->registry->accounts, JSON_HEX_TAG));
         $this->logger->debug('Fetching '.$storageKey.' for accounts ()', array_keys($tokensForFetch));
 
         foreach ($tokensForFetch as $account => $token) {
