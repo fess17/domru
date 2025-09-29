@@ -591,8 +591,11 @@ class Domru
             $httpQuery['TZ'] = $accessControlToUse['timeZone'];
         }
 
+        $uri = $url.http_build_query($httpQuery);
+        $this->logger->debug('['.$uri.'] Trying to fetch camera stream');
+
         return $this->client->get(
-            $url.http_build_query($httpQuery),
+            $uri,
             [
                 'Operator'      => $this->registry->accounts[$account]['data']['operatorId'],
                 'User-Agent'    => sprintf(
