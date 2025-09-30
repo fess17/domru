@@ -376,7 +376,7 @@ class Domru
             $this->logger->debug('getPlaceIdAccessControlId: Subscriber accessControls is empty');
             return reject(new Error('Subscriber accessControls is empty'));
         }
-        $placeId = $all['accounts'][$account]['subscriberPlaces']['place']['id'];
+        $placeId = $all['accounts'][$account]['subscriberPlaces'][0]['place']['id'];
 
         $useAccessControl = null;
 
@@ -388,7 +388,7 @@ class Domru
         }
 
         if (!$placeId || !$useAccessControl) {
-            $this->logger->debug('getPlaceIdAccessControlId: Wrong parameters');
+            $this->logger->debug('getPlaceIdAccessControlId: Wrong parameters: $placeId = '.$placeId.', $useAccessControl = '.json_encode($useAccessControl, JSON_HEX_TAG));
             return reject(new Error('Wrong parameters'));
         }
 
