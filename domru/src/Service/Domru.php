@@ -396,7 +396,7 @@ class Domru
             'placeId'         => $placeId,
             'accessControl'   => $useAccessControl,
         ];
-        $this->logger->debug('getPlaceIdAccessControlId [result]: '.json_encode($result, JSON_HEX_TAG));
+//        $this->logger->debug('getPlaceIdAccessControlId [result]: '.json_encode($result, JSON_HEX_TAG));
 
         return resolve($result);
     }
