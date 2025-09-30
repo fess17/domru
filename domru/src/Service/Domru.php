@@ -365,10 +365,10 @@ class Domru
         );
     }
 
-    private function getPlaceIdAccessControlId(string $account, int $cameraId): PromiseInterface
+    private function getPlaceIdAccessControlId(string $account, int $accessControlId): PromiseInterface
     {
         $all = $this->registry->all();
-        $this->logger->debug('getPlaceIdAccessControlId [all]: '.json_encode($all, JSON_HEX_TAG));
+        //$this->logger->debug('getPlaceIdAccessControlId [all]: '.json_encode($all, JSON_HEX_TAG));
 
         $accountData = $all['accounts'][$account];
         $accessControls = $accountData['accessControls'] ?? null;
@@ -377,26 +377,24 @@ class Domru
         }
         $placeId = $all['accounts'][$account]['subscriberPlaces']['place']['id'];
 
-        $useAccessControl = $accessControlId = null;
+        $useAccessControl = null;
 
         foreach ($accessControls as $accessControl) {
-            if (isset($accessControl['externalCameraId']) && $accessControl['externalCameraId'] === $cameraId) {
-                $accessControlId = $accessControl['id'];
+            if ($accessControl['id'] === $accessControlId) {
                 $useAccessControl = $accessControl;
                 break;
             }
         }
 
-        if (!$placeId || !$accessControlId || !$useAccessControl) {
+        if (!$placeId || !$useAccessControl) {
             return reject(new Error('Wrong parameters'));
         }
 
         $result = [
             'placeId'         => $placeId,
-            'accessControlId' => $accessControlId,
             'accessControl'   => $useAccessControl,
         ];
-        $this->logger->debug('getPlaceIdAccessControlId [result]: '.json_encode($all, JSON_HEX_TAG));
+//        $this->logger->debug('getPlaceIdAccessControlId [result]: '.json_encode($all, JSON_HEX_TAG));
 
         return resolve($result);
     }
@@ -435,26 +433,26 @@ class Domru
         );
     }
 
-    public function openDoor(string $account, int $cameraId): PromiseInterface
+    public function openDoor(string $account, int $accessControlId): PromiseInterface
     {
         if ($this->registry->state !== AsyncRegistry::STATE_LOOP) {
             return reject(new Error('Api not ready'));
         }
 
-        return $this->getPlaceIdAccessControlId($account, $cameraId)
+        return $this->getPlaceIdAccessControlId($account, $accessControlId)
             ->then(
-                function ($use) use ($account) {
+                function ($use) use ($account, $accessControlId) {
                     if ($use['accessControl']['allowOpen'] === false) {
-                        return reject(new Error('Access control allowOpen disabled'));
+                        return reject(new Error('['.$account.']['.$accessControlId.'] Access control allowOpen disabled'));
                     }
 
                     $this->logger->debug(
                         'Trying to open door for place',
-                        ['name' => $use['accessControl']['name'], 'accessControlId' => $use['accessControlId']]
+                        ['name' => $use['accessControl']['name'], 'accessControlId' => $accessControlId]
                     );
 
                     return $this->client->post(
-                        sprintf(self::API_OPEN_DOOR, $use['placeId'], $use['accessControlId']),
+                        sprintf(self::API_OPEN_DOOR, $use['placeId'], $accessControlId),
                         [
                             'Operator'      => $this->registry->accounts[$account]['data']['operatorId'],
                             'Content-Type'  => 'application/json',

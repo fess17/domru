@@ -139,12 +139,12 @@ class RunCommand extends Command
                 ],
             ],
             'openDoor'       => [
-                'path' => '/api/open/{account}/{cameraId}',
+                'path' => '/api/open/{account}/{accessControlId}',
                 'data' => [
                     '_controller'     => self::class,
                     '_method'         => 'openDoor',
                     'account'         => null,
-                    'cameraId'        => null
+                    'accessControlId' => null
                 ],
             ],
             'cameraSnapshot' => [
@@ -294,9 +294,9 @@ class RunCommand extends Command
         );
     }
 
-    private function openDoor(string $account, int $cameraId = null): PromiseInterface
+    private function openDoor(string $account, int $accessControlId = null): PromiseInterface
     {
-        return $this->domru->openDoor($account, $cameraId)->then(
+        return $this->domru->openDoor($account, $accessControlId)->then(
             function ($data) {
                 return $this->json($data);
             },
