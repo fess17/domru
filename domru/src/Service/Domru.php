@@ -373,6 +373,7 @@ class Domru
         $accountData = $all['accounts'][$account];
         $accessControls = $accountData['accessControls'] ?? null;
         if (!is_array($accessControls)) {
+            $this->logger->debug('getPlaceIdAccessControlId: Subscriber accessControls is empty');
             return reject(new Error('Subscriber accessControls is empty'));
         }
         $placeId = $all['accounts'][$account]['subscriberPlaces']['place']['id'];
@@ -387,6 +388,7 @@ class Domru
         }
 
         if (!$placeId || !$useAccessControl) {
+            $this->logger->debug('getPlaceIdAccessControlId: Wrong parameters');
             return reject(new Error('Wrong parameters'));
         }
 
@@ -394,7 +396,7 @@ class Domru
             'placeId'         => $placeId,
             'accessControl'   => $useAccessControl,
         ];
-//        $this->logger->debug('getPlaceIdAccessControlId [result]: '.json_encode($all, JSON_HEX_TAG));
+        $this->logger->debug('getPlaceIdAccessControlId [result]: '.json_encode($result, JSON_HEX_TAG));
 
         return resolve($result);
     }
@@ -438,6 +440,7 @@ class Domru
         if ($this->registry->state !== AsyncRegistry::STATE_LOOP) {
             return reject(new Error('Api not ready'));
         }
+        $this->logger->debug('['.$account.']['.$accessControlId.'] Trying to open door for place');
 
         return $this->getPlaceIdAccessControlId($account, $accessControlId)
             ->then(
