@@ -229,7 +229,7 @@ class Domru
                     $this->refreshTokens()
                         ->then(
                             function () use ($newAccounts) {
-                                $this->logger->debug('addPeriodicTimer: ['.$newAccounts.'] start');
+                                $this->logger->debug('addPeriodicTimer: ['.json_encode($newAccounts, JSON_HEX_TAG).'] start');
                                 $promises = [];
                                 foreach ($newAccounts as $account) {
                                     $this->logger->debug('addPeriodicTimer: ['.$account.'] inside');
@@ -238,7 +238,7 @@ class Domru
                                     $promises[] = $this->fetchData(self::API_PROFILES, 'profiles', $account);
                                     $promises[] = $this->fetchData(self::API_ACCESS_CONTROLS, 'accessControls', $account);
                                 }
-                                $this->logger->debug('addPeriodicTimer: ['.$newAccounts.'] end');
+                                $this->logger->debug('addPeriodicTimer: ['.json_encode($newAccounts, JSON_HEX_TAG).'] end');
 
                                 return all($promises);
                             }
@@ -368,6 +368,8 @@ class Domru
     private function getPlaceIdAccessControlId(string $account, int $cameraId): PromiseInterface
     {
         $all = $this->registry->all();
+        $this->logger->debug('getPlaceIdAccessControlId [all]: '.json_encode($all, JSON_HEX_TAG));
+
         $accountData = $all['accounts'][$account];
         $accessControls = $accountData['accessControls'] ?? null;
         if (!is_array($accessControls)) {
@@ -389,13 +391,14 @@ class Domru
             return reject(new Error('Wrong parameters'));
         }
 
-        return resolve(
-            [
-                'placeId'         => $placeId,
-                'accessControlId' => $accessControlId,
-                'accessControl'   => $useAccessControl,
-            ]
-        );
+        $result = [
+            'placeId'         => $placeId,
+            'accessControlId' => $accessControlId,
+            'accessControl'   => $useAccessControl,
+        ];
+        $this->logger->debug('getPlaceIdAccessControlId [result]: '.json_encode($all, JSON_HEX_TAG));
+
+        return resolve($result);
     }
 
     private function getPlaceId(string $account, int $placeId = null): PromiseInterface
@@ -601,7 +604,7 @@ class Domru
             ),
             'Authorization' => 'Bearer '.$this->registry->getToken($account),
         ];
-        $this->logger->debug('['.$uri.']:['.json_encode($headers, JSON_HEX_TAG).'] Trying to fetch camera stream');
+        //$this->logger->debug('['.$uri.']:['.json_encode($headers, JSON_HEX_TAG).'] Trying to fetch camera stream');
 
         return $this->client->get(
             $uri,
