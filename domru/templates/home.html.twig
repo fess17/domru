@@ -199,33 +199,34 @@ sensors:
 # Открытие дверей
 rest_command:
 {% for accessControl in account.accessControls %}
-  domru_open_door_{{ accessControl.externalCameraId }}:
-    url: http://{{ hostIp }}:20880/api/open/{{ account.address.accountId }}/{{ accessControl.externalCameraId }}
+  domru_open_door_{{ accessControl.id }}:
+    url: http://{{ hostIp }}:20880/api/open/{{ account.address.accountId }}/{{ accessControl.id }}
 
 {% endfor %}
 script:
 {% for accessControl in account.accessControls %}
-  domru_open_door_{{ accessControl.externalCameraId }}:
+  domru_open_door_{{ accessControl.id }}:
     sequence:
-      - service: rest_command.domru_open_door_{{ accessControl.externalCameraId }}
+      - service: rest_command.domru_open_door_{{ accessControl.id }}
 {% endfor %}
                                                         </pre>
 
                                                         <h5><code>ui-lovelace.yaml</code></h5>
                                                         <pre>{% for accessControl in account.accessControls %}
+{% if accessControl.externalCameraId %}
 - type: picture-glance
   title: "{{ accessControl.name }}"
   entities:
-    - entity: script.domru_open_door_{{ accessControl.externalCameraId }}
+    - entity: script.domru_open_door_{{ accessControl.id }}
       icon: "mdi:door-open"
       name: "Открыть дверь"
       tap_action:
         action: toggle
   hold_action:
       action: call-service
-      service: rest_command.domru_open_door_{{ accessControl.externalCameraId }}
+      service: rest_command.domru_open_door_{{ accessControl.id }}
   camera_image: camera.domru_domofon_{{ accessControl.externalCameraId }}
-
+{% endif %}
 {% endfor %}
 </pre>
 
